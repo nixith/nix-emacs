@@ -16,9 +16,9 @@
     nixpkgs,
     flake-utils,
     emacs-overlay,
+      
     # emacs-ng,
-  }:
-    flake-utils.lib.eachDefaultSystem (
+  }: flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = import nixpkgs {
           system = system;
@@ -76,12 +76,24 @@
             #epkgs => pkgs.emacsPackages namespace in nix
             epkgs.vterm # this supposedly neesd to go here. Maybe due to external library issues?
             epkgs.treesit-grammars.with-all-grammars
-            epkgs.parinfer-rust-mode
+            epkgs.leaf
+	    
           ];
         };
         packages.default = self.packages.${system}."emacs";
         devShells.default = pkgs.mkShell {
-          packages = [self.packages.${system}."emacs" pkgs.tree-sitter-grammars.tree-sitter-elisp];
+          packages = [
+            self.packages.${system}."emacs"
+            pkgs.tree-sitter-grammars.tree-sitter-elisp
+            (pkgs.python3.withPackages (p:
+              with p; [
+                epc
+                orjson
+                sexpdata
+                six
+                paramiko
+              ]))
+          ];
         };
       }
     );
