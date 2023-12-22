@@ -608,7 +608,9 @@
   :custom (
 	   (lsp-bridge-nix-lsp-server . "nil")
 	   ))
-(leaf yasnippet) 			;needed for lsp-bridge, can still template in tempel
+(leaf yasnippet
+  :init (yas-global-mode 1)) 			;needed for lsp-bridge, can still template in tempel
+(leaf yasnippet-snippets)
 (leaf markdown-mode)
 
 (leaf tempel
