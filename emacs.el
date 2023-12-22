@@ -8,6 +8,7 @@
 (setq-default bidi-display-reordering 'left-to-right ;I don't use bidirectional text (hebrew, arabic, etc), so diabling it helps performance
               bidi-paragraph-direction 'left-to-right
 	      bidi-inhibit-bpa t)
+
 ;; Reduce rendering/line scan work for Emacs by not rendering cursors or regions
 ;; in non-focused windows.
 (setq-default cursor-in-non-selected-windows nil)
@@ -331,114 +332,119 @@
 ;; cape
 ;; Enable Corfu completion UI
 ;; See the Corfu README for more configuration tips.
-(leaf corfu
-
-  :after orderless
-  :custom (
-	   (corfu-cycle . t)
-	   (corfu-auto . t) ;; Enable auto completion
-	   (corfu-separator . ?\s) ;; Orderless field separator
-	   (corfu-auto-prefix . 2)
-	   (corfu-auto-delay . 0.0)
-	   (corfu-popupinfo-delay . 1)
-	   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-	   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
-	   ;; (corfu-preview-current nil)    ;; Disable current candidate preview
-	   (corfu-preselect 'prompt) ;; Preselect the prompt
-	   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
-	   ;; (corfu-scroll-margin 5)        ;; Use scroll margin
-	   )
-  ;; Enable Corfu only for certain modes.
-  ;; :hook ((prog-mode . corfu-mode)
-  ;;        (shell-mode . corfu-mode)
-  ;;        (eshell-mode . corfu-mode))
-
-  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
-  ;; be usesed globally (M-/).  See also the customization variable
-  ;; `globally-corfu-modes' to exclude certain modes.
-  :bind
-  (:corfu-map (
-	       ("TAB" . corfu-next)
-	       ([tab] . corfu-next)
-	       ("S-TAB" . corfu-previous)
-	       ([backtab] . corfu-previous)))
-  :init
-  (global-corfu-mode)
-  (corfu-history-mode)
-  (corfu-popupinfo-mode))
-
-
-(leaf corfu-prescient ;; use prescient to filter corfu
-  :after corfu
-  :init (corfu-prescient-mode 1))
-(leaf corfu-terminal
-  :config
-  (unless (display-graphic-p)
-    (corfu-terminal-mode 1)))
-  
-  (leaf nerd-icons-corfu
-    :after corfu
-    :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
-
-
-;; Use Dabbrev with Corfu!
-(leaf dabbrev
-  ;; Swap M-/ and C-M-/
-  :bind (("M-/" . dabbrev-completion)
-	 ("C-M-/" . dabbrev-expand))
-  ;; Other useful Dabbrev configurations.
-  :custom
-  (dabbrev-ignored-buffer-regexps . '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'")))
-
-
-
-(leaf cape
-  ;; Bind dedicated completion commands
-  ;; Alternative prefix keys: C-c p, M-p, M-+, ...
-
-  :bind (("C-c p p" . completion-at-point) ;; capf
-	 ("C-c p t" . complete-tag)	   ;; etags
-	 ("C-c p d" . cape-dabbrev)	   ;; or dabbrev-completion
-	 ("C-c p h" . cape-history)
-	 ("C-c p f" . cape-file)
-	 ("C-c p k" . cape-keyword)
-	 ("C-c p s" . cape-elisp-symbol)
-	 ("C-c p e" . cape-elisp-block)
-	 ("C-c p a" . cape-abbrev)
-	 ("C-c p l" . cape-line)
-	 ("C-c p w" . cape-dict)
-	 ("C-c p :" . cape-emoji)
-	 ("C-c p \\" . cape-tex)
-	 ("C-c p _" . cape-tex)
-	 ("C-c p ^" . cape-tex)
-	 ("C-c p &" . cape-sgml)
-	 ("C-c p r" . cape-rfc1345))
-  :init
-  ;; Add to the global default value of `completion-at-point-functions' which is
-  ;; used by `completion-at-point'.  The order of the functions matters, the
-  ;; first function returning a result wins.  Note that the list of buffer-local
-  ;; completion functions takes precedence over the global list.
-  (add-to-list 'completion-at-point-functions #'cape-keyword)
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  (add-to-list 'completion-at-point-functions #'cape-file)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  ;;(add-to-list 'completion-at-point-functions #'cape-history)
-  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
-  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
-  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
-  (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-  ;;(add-to-list 'completion-at-point-functions #'cape-line)
-  (add-to-list 'completion-at-point-functions #'cape-tex)
-  (add-to-list 'completion-at-point-functions #'cape-emoji)
-  (defun my/setup-elisp ()
-    (setq-local completion-at-point-functions
-		`(,(cape-super-capf
-		    #'elisp-completion-at-point
-		    #'cape-dabbrev)
-		  cape-file)
-		cape-dabbrev-min-length 5))
-  (add-hook 'emacs-lisp-mode-hook #'my/setup-elisp))
+;; disabled in favor of lsp-bridge. As nice as it would be
+;; to have everything standardized, emacs' current model
+;; just isn't set up well for LSP.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (leaf corfu										        ;;
+;; 											        ;;
+;;   :after orderless									        ;;
+;;   :custom (										        ;;
+;; 	   (corfu-cycle . t)								        ;;
+;; 	   (corfu-auto . t)	   ;; Enable auto completion				        ;;
+;; 	   (corfu-separator . ?\s) ;; Orderless field separator			        ;;
+;; 	   (corfu-auto-prefix . 2)							        ;;
+;; 	   (corfu-auto-delay . 0.0)							        ;;
+;; 	   (corfu-popupinfo-delay . 1)						        ;;
+;; 	   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary	        ;;
+;; 	   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match        ;;
+;; 	   ;; (corfu-preview-current nil)    ;; Disable current candidate preview	        ;;
+;; 	   (corfu-preselect 'prompt) ;; Preselect the prompt				        ;;
+;; 	   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches	        ;;
+;; 	   ;; (corfu-scroll-margin 5)        ;; Use scroll margin			        ;;
+;; 	   )										        ;;
+;;   ;; Enable Corfu only for certain modes.						        ;;
+;;   ;; :hook ((prog-mode . corfu-mode)							        ;;
+;;   ;;        (shell-mode . corfu-mode)						        ;;
+;;   ;;        (eshell-mode . corfu-mode))						        ;;
+;; 											        ;;
+;;   ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can	        ;;
+;;   ;; be usesed globally (M-/).  See also the customization variable			        ;;
+;;   ;; `globally-corfu-modes' to exclude certain modes.				        ;;
+;;   :bind										        ;;
+;;   (:corfu-map (									        ;;
+;; 	       ("TAB" . corfu-next)							        ;;
+;; 	       ([tab] . corfu-next)							        ;;
+;; 	       ("S-TAB" . corfu-previous)						        ;;
+;; 	       ([backtab] . corfu-previous)))					        ;;
+;;   :init										        ;;
+;;   (global-corfu-mode)								        ;;
+;;   (corfu-history-mode)								        ;;
+;;   (corfu-popupinfo-mode))								        ;;
+;; 											        ;;
+;; 											        ;;
+;; (leaf corfu-prescient ;; use prescient to filter corfu				        ;;
+;;   :after corfu									        ;;
+;;   :init (corfu-prescient-mode 1))							        ;;
+;; (leaf corfu-terminal									        ;;
+;;   :config										        ;;
+;;   (unless (display-graphic-p)							        ;;
+;;     (corfu-terminal-mode 1)))							        ;;
+;;   											        ;;
+;;   (leaf nerd-icons-corfu								        ;;
+;;     :after corfu									        ;;
+;;     :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))	        ;;
+;; 											        ;;
+;; 											        ;;
+;; ;; Use Dabbrev with Corfu!								        ;;
+;; (leaf dabbrev									        ;;
+;;   ;; Swap M-/ and C-M-/								        ;;
+;;   :bind (("M-/" . dabbrev-completion)						        ;;
+;; 	 ("C-M-/" . dabbrev-expand))							        ;;
+;;   ;; Other useful Dabbrev configurations.						        ;;
+;;   :custom										        ;;
+;;   (dabbrev-ignored-buffer-regexps . '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'")))		        ;;
+;; 											        ;;
+;; 											        ;;
+;; 											        ;;
+;; (leaf cape										        ;;
+;;   ;; Bind dedicated completion commands						        ;;
+;;   ;; Alternative prefix keys: C-c p, M-p, M-+, ...					        ;;
+;; 											        ;;
+;;   :bind (("C-c p p" . completion-at-point) ;; capf					        ;;
+;; 	 ("C-c p t" . complete-tag)	   ;; etags					        ;;
+;; 	 ("C-c p d" . cape-dabbrev)	   ;; or dabbrev-completion			        ;;
+;; 	 ("C-c p h" . cape-history)							        ;;
+;; 	 ("C-c p f" . cape-file)							        ;;
+;; 	 ("C-c p k" . cape-keyword)							        ;;
+;; 	 ("C-c p s" . cape-elisp-symbol)						        ;;
+;; 	 ("C-c p e" . cape-elisp-block)						        ;;
+;; 	 ("C-c p a" . cape-abbrev)							        ;;
+;; 	 ("C-c p l" . cape-line)							        ;;
+;; 	 ("C-c p w" . cape-dict)							        ;;
+;; 	 ("C-c p :" . cape-emoji)							        ;;
+;; 	 ("C-c p \\" . cape-tex)							        ;;
+;; 	 ("C-c p _" . cape-tex)							        ;;
+;; 	 ("C-c p ^" . cape-tex)							        ;;
+;; 	 ("C-c p &" . cape-sgml)							        ;;
+;; 	 ("C-c p r" . cape-rfc1345))							        ;;
+;;   :init										        ;;
+;;   ;; Add to the global default value of `completion-at-point-functions' which is	        ;;
+;;   ;; used by `completion-at-point'.  The order of the functions matters, the		        ;;
+;;   ;; first function returning a result wins.  Note that the list of buffer-local	        ;;
+;;   ;; completion functions takes precedence over the global list.			        ;;
+;;   (add-to-list 'completion-at-point-functions #'cape-keyword)			        ;;
+;;   (add-to-list 'completion-at-point-functions #'cape-dabbrev)			        ;;
+;;   (add-to-list 'completion-at-point-functions #'cape-file)				        ;;
+;;   (add-to-list 'completion-at-point-functions #'cape-elisp-block)			        ;;
+;;   ;;(add-to-list 'completion-at-point-functions #'cape-history)			        ;;
+;;   ;;(add-to-list 'completion-at-point-functions #'cape-sgml)				        ;;
+;;   ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)			        ;;
+;;   ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)			        ;;
+;;   ;;(add-to-list 'completion-at-point-functions #'cape-dict)				        ;;
+;;   (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)			        ;;
+;;   ;;(add-to-list 'completion-at-point-functions #'cape-line)				        ;;
+;;   (add-to-list 'completion-at-point-functions #'cape-tex)				        ;;
+;;   (add-to-list 'completion-at-point-functions #'cape-emoji)				        ;;
+;;   (defun my/setup-elisp ()								        ;;
+;;     (setq-local completion-at-point-functions					        ;;
+;; 		`(,(cape-super-capf							        ;;
+;; 		    #'elisp-completion-at-point						        ;;
+;; 		    #'cape-dabbrev)							        ;;
+;; 		  cape-file)								        ;;
+;; 		cape-dabbrev-min-length 5))						        ;;
+;;   (add-hook 'emacs-lisp-mode-hook #'my/setup-elisp))					        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (leaf marginalia
@@ -519,80 +525,91 @@
 ;;     :commands lsp-ui-mode)
 
 
-(defvar +lsp-defer-shutdown 3
-  "If non-nil, defer shutdown of LSP servers for this many seconds after last
-workspace buffer is closed.
+;; disabled for similar reasons as above - using lsp-bridge
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (defvar +lsp-defer-shutdown 3								        ;;
+;;   "If non-nil, defer shutdown of LSP servers for this many seconds after last		        ;;
+;; workspace buffer is closed.									        ;;
+;; 												        ;;
+;; This delay prevents premature server shutdown when a user still intends on			        ;;
+;; working on that project after closing the last buffer, or when programmatically		        ;;
+;; killing and opening many LSP/eglot-powered buffers.")					        ;;
+;; 												        ;;
+;; 												        ;;
+;; ;;												        ;;
+;; ;;; Common											        ;;
+;; 												        ;;
+;; (defvar +lsp--default-read-process-output-max nil)						        ;;
+;; (defvar +lsp--default-gcmh-high-cons-threshold nil)						        ;;
+;; (defvar +lsp--optimization-init-p nil)							        ;;
+;; 												        ;;
+;; (define-minor-mode +lsp-optimization-mode							        ;;
+;;   "Deploys universal GC and IPC optimizations for `lsp-mode' and `eglot'."			        ;;
+;;   :global t											        ;;
+;;   :init-value nil										        ;;
+;;   (if (not +lsp-optimization-mode)								        ;;
+;;       (setq-default read-process-output-max +lsp--default-read-process-output-max		        ;;
+;;                     gcmh-high-cons-threshold +lsp--default-gcmh-high-cons-threshold		        ;;
+;;                     +lsp--optimization-init-p nil)						        ;;
+;;     ;; Only apply these settings once!							        ;;
+;;     (unless +lsp--optimization-init-p							        ;;
+;;       (setq +lsp--default-read-process-output-max (default-value 'read-process-output-max)	        ;;
+;;             +lsp--default-gcmh-high-cons-threshold (default-value 'gcmh-high-cons-threshold))        ;;
+;;       (setq-default read-process-output-max (* 1024 1024))					        ;;
+;;       ;; REVIEW LSP causes a lot of allocations, with or without the native JSON		        ;;
+;;       ;;        library, so we up the GC threshold to stave off GC-induced			        ;;
+;;       ;;        slowdowns/freezes. Doom (where this code was obtained from)			        ;;
+;;       ;;        uses `gcmh' to enforce its GC strategy,					        ;;
+;;       ;;        so we modify its variables rather than `gc-cons-threshold'			        ;;
+;;       ;;        directly.									        ;;
+;;       (setq-default gcmh-high-cons-threshold (* 2 +lsp--default-gcmh-high-cons-threshold))	        ;;
+;;       (gcmh-set-high-threshold)								        ;;
+;;       (setq +lsp--optimization-init-p t))))							        ;;
+;; 												        ;;
+;; (leaf eglot											        ;;
+;;   :hook ((eglot-managed-mode . +lsp-optimization-mode)					        ;;
+;; 	 (nix-ts-mode . eglot-ensure)							        ;;
+;; 	 (rust-ts-mode . eglot-ensure))							        ;;
+;;   :config (											        ;;
+;; 	   (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nil"))))			        ;;
+;;   :init											        ;;
+;;   (setq completion-category-overrides '((eglot (styles orderless))))				        ;;
+;;   (setq eglot-sync-connect 1									        ;;
+;; 	eglot-autoshutdown t									        ;;
+;; 	eglot-send-changes-idle-time 0.5							        ;;
+;; 	;; NOTE This setting disable the eglot-events-buffer enabling more			        ;;
+;; 	;;      consistent performance on long running emacs instance.			        ;;
+;; 	;;      Default is 2000000 lines. After each new event the whole buffer		        ;;
+;; 	;;      is pretty printed which causes steady performance decrease over time.	        ;;
+;; 	;;      CPU is spent on pretty priting and Emacs GC is put under high pressure.	        ;;
+;; 	eglot-events-buffer-size 0								        ;;
+;; 	;; NOTE We disable eglot-auto-display-help-buffer because :select t in		        ;;
+;; 	;;      its popup rule causes eglot to steal focus too often.			        ;;
+;; 	eglot-auto-display-help-buffer nil)							        ;;
+;;   												        ;;
+;;   (defun my/eglot-capf ()									        ;;
+;;     (setq-local completion-at-point-functions						        ;;
+;; 		(list (cape-super-capf								        ;;
+;; 		       #'eglot-completion-at-point						        ;;
+;; 		       #'tempel-expand								        ;;
+;; 		       #'cape-file))))								        ;;
+;; 												        ;;
+;;   (add-hook 'eglot-managed-mode-hook #'my/eglot-capf))					        ;;
+;; (leaf consult-eglot)										        ;;
+;; (leaf flycheck-eglot										        ;;
+;;   :after (flycheck eglot)									        ;;
+;;   :custom (flycheck-eglot-exclusive . nil)							        ;;
+;;   :config											        ;;
+;;   (global-flycheck-eglot-mode 1))								        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-This delay prevents premature server shutdown when a user still intends on
-working on that project after closing the last buffer, or when programmatically
-killing and opening many LSP/eglot-powered buffers.")
-
-
-;;
-;;; Common
-
-(defvar +lsp--default-read-process-output-max nil)
-(defvar +lsp--default-gcmh-high-cons-threshold nil)
-(defvar +lsp--optimization-init-p nil)
-
-(define-minor-mode +lsp-optimization-mode
-  "Deploys universal GC and IPC optimizations for `lsp-mode' and `eglot'."
-  :global t
-  :init-value nil
-  (if (not +lsp-optimization-mode)
-      (setq-default read-process-output-max +lsp--default-read-process-output-max
-                    gcmh-high-cons-threshold +lsp--default-gcmh-high-cons-threshold
-                    +lsp--optimization-init-p nil)
-    ;; Only apply these settings once!
-    (unless +lsp--optimization-init-p
-      (setq +lsp--default-read-process-output-max (default-value 'read-process-output-max)
-            +lsp--default-gcmh-high-cons-threshold (default-value 'gcmh-high-cons-threshold))
-      (setq-default read-process-output-max (* 1024 1024))
-      ;; REVIEW LSP causes a lot of allocations, with or without the native JSON
-      ;;        library, so we up the GC threshold to stave off GC-induced
-      ;;        slowdowns/freezes. Doom (where this code was obtained from)
-      ;;        uses `gcmh' to enforce its GC strategy,
-      ;;        so we modify its variables rather than `gc-cons-threshold'
-      ;;        directly.
-      (setq-default gcmh-high-cons-threshold (* 2 +lsp--default-gcmh-high-cons-threshold))
-      (gcmh-set-high-threshold)
-      (setq +lsp--optimization-init-p t))))
-
-(leaf eglot
-  :hook ((eglot-managed-mode . +lsp-optimization-mode)
-	 (nix-ts-mode . eglot-ensure)
-	 (rust-ts-mode . eglot-ensure))
-  :config (
-	   (add-to-list 'eglot-server-programs '(nix-ts-mode . ("nil"))))
-  :init
-  (setq completion-category-overrides '((eglot (styles orderless))))
-  (setq eglot-sync-connect 1
-	eglot-autoshutdown t
-	eglot-send-changes-idle-time 0.5
-	;; NOTE This setting disable the eglot-events-buffer enabling more
-	;;      consistent performance on long running emacs instance.
-	;;      Default is 2000000 lines. After each new event the whole buffer
-	;;      is pretty printed which causes steady performance decrease over time.
-	;;      CPU is spent on pretty priting and Emacs GC is put under high pressure.
-	eglot-events-buffer-size 0
-	;; NOTE We disable eglot-auto-display-help-buffer because :select t in
-	;;      its popup rule causes eglot to steal focus too often.
-	eglot-auto-display-help-buffer nil)
-  
-  (defun my/eglot-capf ()
-    (setq-local completion-at-point-functions
-		(list (cape-super-capf
-		       #'eglot-completion-at-point
-		       #'tempel-expand
-		       #'cape-file))))
-
-  (add-hook 'eglot-managed-mode-hook #'my/eglot-capf))
-(leaf consult-eglot)
-(leaf flycheck-eglot
-  :after (flycheck eglot)
-  :custom (flycheck-eglot-exclusive . nil)
-  :config
-  (global-flycheck-eglot-mode 1))
+(leaf lsp-bridge
+  :init (global-lsp-bridge-mode)
+  :custom (
+	   (lsp-bridge-nix-lsp-server . "nil")
+	   ))
+(leaf yasnippet) 			;needed for lsp-bridge, can still template in tempel
+(leaf markdown-mode)
 
 (leaf tempel
   ;; Require trigger prefix before template name when completing.
@@ -604,22 +621,25 @@ killing and opening many LSP/eglot-powered buffers.")
 
   :init
 
-  ;; Setup completion at point
-  (defun tempel-setup-capf ()
-    ;; Add the Tempel Capf to `completion-at-point-functions'.
-    ;; `tempel-expand' only triggers on exact matches. Alternatively use
-    ;; `tempel-complete' if you want to see all matches, but then you
-    ;; should also configure `tempel-trigger-prefix', such that Tempel
-    ;; does not trigger too often when you don't expect it. NOTE: We add
-    ;; `tempel-expand' *before* the main programming mode Capf, such
-    ;; that it will be tried first.
-    (setq-local completion-at-point-functions
-		(cons #'tempel-expand
-		      completion-at-point-functions)))
-
-  (add-hook 'conf-mode-hook 'tempel-setup-capf)
-  (add-hook 'prog-mode-hook 'tempel-setup-capf)
-  (add-hook 'text-mode-hook 'tempel-setup-capf)
+  ;; commented due to useing lsp-bridge
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; ;; Setup completion at point						   ;;
+  ;; (defun tempel-setup-capf ()						   ;;
+  ;;   ;; Add the Tempel Capf to `completion-at-point-functions'.		   ;;
+  ;;   ;; `tempel-expand' only triggers on exact matches. Alternatively use	   ;;
+  ;;   ;; `tempel-complete' if you want to see all matches, but then you	   ;;
+  ;;   ;; should also configure `tempel-trigger-prefix', such that Tempel	   ;;
+  ;;   ;; does not trigger too often when you don't expect it. NOTE: We add	   ;;
+  ;;   ;; `tempel-expand' *before* the main programming mode Capf, such		   ;;
+  ;;   ;; that it will be tried first.						   ;;
+  ;;   (setq-local completion-at-point-functions				   ;;
+  ;; 		(cons #'tempel-expand						   ;;
+  ;; 		      completion-at-point-functions)))				   ;;
+  ;; 										   ;;
+  ;; (add-hook 'conf-mode-hook 'tempel-setup-capf)				   ;;
+  ;; (add-hook 'prog-mode-hook 'tempel-setup-capf)				   ;;
+  ;; (add-hook 'text-mode-hook 'tempel-setup-capf)				   ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;; Optionally make the Tempel templates available to Abbrev,
   ;; either locally or globally. `expand-abbrev' is bound to C-x '.
