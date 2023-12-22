@@ -3,21 +3,29 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    emacs-overlay.url = "github:nix-community/emacs-overlay";
     flake-utils.url = "github:numtide/flake-utils";
+    emacs-overlay.url = "github:nix-community/emacs-overlay";
+    # emacs-ng = {
+    #   url = "github:emacs-ng/emacs-ng";
+    #   inputs.emacs-overlay.follows = "emacs-overlay";
+    # }; # emacs with some wacky things like web rendering. also rust
   };
 
   outputs = {
     self,
     nixpkgs,
-    emacs-overlay,
     flake-utils,
+    emacs-overlay,
+    # emacs-ng,
   }:
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = import nixpkgs {
           system = system;
-          overlays = [emacs-overlay.overlays.default]; # gets emacs and package overlays
+          overlays = [
+            emacs-overlay.overlays.default
+            #emacs-ng.overlays.default
+          ]; # gets emacs and package overlays
         };
       in {
         packages."emacs" = pkgs.emacsWithPackagesFromUsePackage {
@@ -41,8 +49,9 @@
           defaultInitFile = true;
 
           # Package is optional, defaults to pkgs.emacs
-          package = pkgs.emacs-pgtk;
-          # package = pkgs.emacs29-pgtk;
+          # package = pkgs.emacsngWRPgtk; #emacs-ng build
+          package = pkgs.emacs-pgtk; # bleeding edge pgtk
+          # package = pkgs.emacs29-pgtk; # stable latest release pgtk
 
           # By default emacsWithPackagesFromUsePackage will only pull in
           # packages with `:ensure`, `:ensure t` or `:ensure <package name>`.
@@ -63,14 +72,17 @@
           # alwaysTangle = true;
 
           # Optionally provide extra packages not in the configuration file.
-          # extraEmacsPackages = epkgs: [
-          #   epkgs.cask
-          # ];
+          extraEmacsPackages = epkgs: [
+            #epkgs => pkgs.emacsPackages namespace in nix
+            epkgs.vterm # this supposedly neesd to go here. Maybe due to external library issues?
+            epkgs.treesit-grammars.with-all-grammars
+            epkgs.parinfer-rust-mode
+          ];
         };
-        devShells."emacs" = pkgs.mkShell {
-          packages = [self.packages."emacs"];
+        packages.default = self.packages.${system}."emacs";
+        devShells.default = pkgs.mkShell {
+          packages = [self.packages.${system}."emacs" pkgs.tree-sitter-grammars.tree-sitter-elisp];
         };
-        devShells.default = self.devShells."emacs";
       }
     );
 }
