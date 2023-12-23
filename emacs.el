@@ -3,6 +3,7 @@
 ;;; Commentary:
 ;;; Code:
 ;;; from DOOM emacs
+
 (setq gc-cons-threshold most-positive-fixnum) ;v large GC buffer, gcmh-mode cleans it up later
 (setq load-prefer-newer noninteractive)		;I believer nix takes care of this as files loaded are always compiled and static
 (setq-default bidi-display-reordering 'left-to-right ;I don't use bidirectional text (hebrew, arabic, etc), so diabling it helps performance
@@ -18,7 +19,8 @@
 ;; quickly self-correct.
 (setq fast-but-imprecise-scrolling t)
 ;; Don't ping things that look like domain names.
-(setq ffap-machine-p-known 'reject)
+;; (setq ffap-machine-p-known 'reject) ;;NOTE: unrecognized for some reason
+
 ;; Emacs "updates" its ui more often than it needs to, so slow it down slightly
 (setq idle-update-delay 1.0)  ; default is 0.5
 ;; Font compacting can be terribly expensive, especially for rendering icon
@@ -36,6 +38,16 @@
 ;; This is further increased elsewhere, where needed (like our LSP module).
 (setq read-process-output-max (* 64 1024))  ; 64kb
 (setq redisplay-skip-fontification-on-input t)
+
+
+(eval-when-compile
+  (require 'use-package))
+(use-package bind-key
+  :custom (
+	   (use-package-always-ensure t)
+	   (use-package-verbose t)
+	   ) ;disabled so its explicit if something is a hook. Also my current config appends hook already
+  :demand t)
 
 (scroll-bar-mode -1)        ; Disable visible scrollbar
 (tool-bar-mode -1)          ; Disable the toolbar
@@ -59,49 +71,51 @@
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 
-
-;; requirements for leaf
-(eval-and-compile
-  (customize-set-variable
-   'package-archives '(("melpa" . "https://melpa.org/packages/")
-		       ("gnu" . "https://elpa.gnu.org/packages/")))
-  (package-initialize)
-  (unless (package-installed-p 'leaf)
-    (package-refresh-contents)
-    (package-install 'leaf))
-
-  (leaf leaf-keywords
-    :ensure t
-    :init
-    ;; optional packages if you want to use :hydra, :el-get, :blackout,,,
-    (leaf hydra :ensure nil)
-    (leaf el-get :ensure nil)
-    (leaf blackout :ensure nil)
-
-    :config
-    ;; initialize leaf-keywords.el
-    (leaf-keywords-init)))
-;; end requirements for leaf
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;; requirements for leaf							    ;;
+;; (eval-and-compile								    ;;
+;;   (customize-set-variable							    ;;
+;;    'package-archives '(("melpa" . "https://melpa.org/packages/")		    ;;
+;; 		       ("gnu" . "https://elpa.gnu.org/packages/")))		    ;;
+;;   (package-initialize)							    ;;
+;;   (unless (package-installed-p 'leaf)					    ;;
+;;     (package-refresh-contents)						    ;;
+;;     (package-install 'leaf)							    ;;
+;; 										    ;;
+;;   (leaf leaf-keywords							    ;;
+;;     :ensure t								    ;;
+;;     :init									    ;;
+;;     ;; optional packages if you want to use :hydra, :el-get, :blackout,,,	    ;;
+;;     (leaf hydra :ensure nil)							    ;;
+;;     (leaf el-get :ensure nil)						    ;;
+;;     (leaf blackout :ensure nil)						    ;;
+;; 										    ;;
+;;     :config									    ;;
+;;     ;; initialize leaf-keywords.el						    ;;
+;;     (leaf-keywords-init))))							    ;;
+;; ;; end requirements for leaf							    ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; performance stuff
-(use-package gcmh 			;for some reason leaf causes the error, this doesnt
- :custom ((gcmh-idle-delay . 'auto)
-	  (gcmh-auto-idle-delay-factor .  10)
-	  (gcmh-high-cons-threshold . (* 16 1024 1024))) ;16mb
- :hook (after-init-hook . (gcmh-mode 1))
- )
-(leaf hyperbole)
-(leaf evil
+(use-package gcmh ;for some reason use-package causes the error, this doesnt
+  :custom ((gcmh-idle-delay 'auto)
+	   (gcmh-auto-idle-delay-factor 10)
+	   (gcmh-high-cons-threshold (* 16 1024 1024)))
+  :config (gcmh-mode 1)
+  )
+;; (use-package hyperbole 			;TODO: investiage error for void symbol func def
+;;   :config (hyperbole-mode))
+(use-package evil
   :custom (
-	   (evil-shift-width . 4)
-	   (evil-undo-system . 'undo-redo)
-	   (evil-want-c-u-scroll . t)
-  ;; 	   (evil-want-keybinding . nil) ; needed for evil-collection
-  ;; 	   (evil-want-integration . t)
-     )
-  :init
+	   ;; (evil-shift-width 4)
+	   (evil-undo-system 'undo-redo)
+	   (evil-want-c-u-scroll t)
+	   ;; 	   (evil-want-keybinding . nil) ; needed for evil-collection
+	   ;; 	   (evil-want-integration . t)
+	   )
+  :config
   (evil-mode 1))
-;; (leaf evil-collection ;;TODO: figure out why this breaks lispy
+;; (use-package evil-collection ;;TODO: figure out why this breaks lispy
 ;;   :after evil
 ;;   :custom (electric-pair-mode . t)
 	  
@@ -109,38 +123,55 @@
 ;;   (evil-collection-init))
 
 
-(leaf org
-  :after evil
-  :leaf-defer nil)
-(leaf org-modern
+(use-package org)
+(use-package org-modern
   :hook (
-	 (org-mode-hook . org-modern-mode)
-	 (org-agenda-finalize-hook . org-modern-agenda)))
+	 (org-mode . org-modern-mode)
+	 (org-agenda-finalize . org-modern-agenda)))
 
 
-(leaf rainbow-mode
-  :leaf-defer nil
+(use-package rainbow-mode
   :hook org-mode
   emacs-lisp-mode
   web-mode
   typescript-mode
   js2-mode)
 
-(leaf rainbow-delimiters
-  :hook (prog-mode-hook . rainbow-delimiters-mode))
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
 
-(leaf which-key
+(use-package which-key
   :after evil
   :config (which-key-mode))
 
-(leaf catppuccin-theme
+(use-package catppuccin-theme
   :init (load-theme 'catppuccin :no-confirm))
 
 ;; Enable vertico
-(leaf vertico
-  :bind (auth-source-do-warn)
+;; Enable vertico
+(use-package vertico
   :init
   (vertico-mode)
+  :hook (minibuffer-setup . cursor-intangible-mode)
+  :custom ((minibuffer-prompt-properties
+	    '(read-only t cursor-intangible t face minibuffer-prompt))
+	   (read-extended-command-predicate
+	    #'command-completion-default-include-p)
+	   (enable-recursive-minibuffers t)
+	   (completion-cycle-threshold 3)
+	   (tab-always-indent 'complete-tag))
+  :config
+  ;; Add prompt indicator to `completing-read-multiple'.
+  ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
+
+  (defun crm-indicator (args)
+    (cons (format "[CRM%s] %s"
+                  (replace-regexp-in-string
+                   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                   crm-separator)
+                  (car args))
+          (cdr args)))
+  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
 
   ;; Different scroll margin
   ;; (setq vertico-scroll-margin 0)
@@ -149,57 +180,36 @@
   ;; (setq vertico-count 20)
 
   ;; Grow and shrink the Vertico minibuffer
-  (setq vertico-resize t)
+  ;; (setq vertico-resize t)
 
   ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
   ;; (setq vertico-cycle t)
   )
-(leaf vertico-posframe
+
+;; Persist history over Emacs restarts. Vertico sorts by history position.
+
+(use-package vertico-posframe
   :after vertico
-  :custom (vertico-posframe-mode . 1))
+  :custom ((vertico-posframe-mode 1))
+  )
 
-;; A few more useful configurations...
-(leaf emacs
-  :init
-  ;; Add prompt indicator to `completing-read-multiple'.
-  ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
-  (defun crm-indicator (args)
-    (cons (format "[CRM%s] %s"
-		  (replace-regexp-in-string
-		   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
-		   crm-separator)
-		  (car args))
-	  (cdr args)))
-  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+(add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 
-  ;; Do not allow the cursor in the minibuffer prompt
-  (setq minibuffer-prompt-properties
-	'(read-only t cursor-intangible t face minibuffer-prompt))
-  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 
-  ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
-  ;; Vertico commands are hidden in normal buffers.
-  (setq read-extended-command-predicate
-	#'command-completion-default-include-p)
 
-  ;; Enable recursive minibuffers
-  (setq enable-recursive-minibuffers t)
-  (setq completion-cycle-threshold 3)
-  (setq tab-always-indent 'complete-tag))
-
-(leaf doom-modeline
+(use-package doom-modeline
   :init (doom-modeline-mode)
   :custom (
-	   (doom-modeline-height . 25)
-	   (doom-modeline-support-imenu . t)
-	   (doom-modeline-hud . t) ;;TODO: see if I like this setting
-	   (doom-modeline-icon . t)))
-(leaf solaire-mode
+	   (doom-modeline-height 25)
+	   (doom-modeline-support-imenu t)
+	   (doom-modeline-hud t) ;;TODO: see if I like this setting
+	   (doom-modeline-icon t)))
+(use-package solaire-mode
   :init (solaire-global-mode))
-(leaf doom-themes)
+(use-package doom-themes)
 
 ;; Optionally use the `orderless' completion style.
-(leaf orderless
+(use-package orderless
   :init
   ;; Configure a custom style dispatcher (see the Consult wiki)
   ;; (setq orderless-style-dispatchers '(+orderless-consult-dispatch orderless-affix-dispatch)
@@ -208,61 +218,60 @@
 	completion-category-defaults nil
 	completion-category-overrides nil))
 
-;; Example configuration for Consult
-(leaf consult
-  ;; Replace bindings. Lazily loaded due by `leaf'.
-  :bind ;; C-c bindings in `mode-specific-map'
-  (("C-c M-x" . consult-mode-command)
-   ("C-c h" . consult-history)
-   ("C-c k" . consult-kmacro)
-   ("C-c m" . consult-man)
-   ("C-c i" . consult-info)
-   ([remap Info-search] . consult-info)
-   ;; C-x bindings in `ctl-x-map'
-   ("C-x M-:" . consult-complex-command) ;; orig. repeat-complex-command
-   ("C-x b" . consult-buffer)		 ;; orig. switch-to-buffer
-   ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-   ("C-x 5 b" . consult-buffer-other-frame) ;; orig. switch-to-buffer-other-frame
-   ("C-x t b" . consult-buffer-other-tab) ;; orig. switch-to-buffer-other-tab
-   ("C-x r b" . consult-bookmark)	  ;; orig. bookmark-jump
-   ("C-x p b" . consult-project-buffer) ;; orig. project-switch-to-buffer
-   ;; Custom M-# bindings for fast register access
-   ("M-#" . consult-register-load)
-   ("M-'" . consult-register-store) ;; orig. abbrev-prefix-mark (unrelated)
-   ("C-M-#" . consult-register)
-   ;; Other custom bindings
-   ("M-y" . consult-yank-pop) ;; orig. yank-pop
-   ;; M-g bindings in `goto-map'
-   ("M-g e" . consult-compile-error)
-   ("M-g f" . consult-flycheck)	 ;; Alternative: consult-flycheck
-   ("M-g g" . consult-goto-line) ;; orig. goto-line
-   ("M-g M-g" . consult-goto-line) ;; orig. goto-line
-   ("M-g o" . consult-outline)	   ;; Alternative: consult-org-heading
-   ("M-g m" . consult-mark)
-   ("M-g k" . consult-global-mark)
-   ("M-g i" . consult-imenu)
-   ("M-g I" . consult-imenu-multi)
-   ;; M-s bindings in `search-map'
-   ("M-s d" . consult-find) ;; Alternative: consult-fd
-   ("M-s c" . consult-locate)
-   ("M-s g" . consult-grep)
-   ("M-s G" . consult-git-grep)
-   ("M-s r" . consult-ripgrep)
-   ("M-s l" . consult-line)
-   ("M-s L" . consult-line-multi)
-   ("M-s k" . consult-keep-lines)
-   ("M-s u" . consult-focus-lines)
-   ;; Isearch integration
-   ("M-s e" . consult-isearch-history)
-   (:isearch-mode-map
-    ("M-e" . consult-isearch-history) ;; orig. isearch-edit-string
-    ("M-s e" . consult-isearch-history) ;; orig. isearch-edit-string
-    ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
-    ("M-s L" . consult-line-multi)) ;; needed by consult-line to detect isearch
-   ;; Minibuffer history
-   (:minibuffer-local-map
-    ("M-s" . consult-history) ;; orig. next-matching-history-element
-    ("M-r" . consult-history))) ;; orig. previous-matching-history-element
+(use-package consult
+  ;; Replace bindings. Lazily loaded due by `use-package'.
+  :bind (;; C-c bindings in `mode-specific-map'
+         ("C-c M-x" . consult-mode-command)
+         ("C-c h" . consult-history)
+         ("C-c k" . consult-kmacro)
+         ("C-c m" . consult-man)
+         ("C-c i" . consult-info)
+         ([remap Info-search] . consult-info)
+         ;; C-x bindings in `ctl-x-map'
+         ("C-x M-:" . consult-complex-command) ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer) ;; orig. switch-to-buffer
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame) ;; orig. switch-to-buffer-other-frame
+         ("C-x t b" . consult-buffer-other-tab)	;; orig. switch-to-buffer-other-tab
+         ("C-x r b" . consult-bookmark)		;; orig. bookmark-jump
+         ("C-x p b" . consult-project-buffer) ;; orig. project-switch-to-buffer
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store) ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop) ;; orig. yank-pop
+         ;; M-g bindings in `goto-map'
+         ("M-g e" . consult-compile-error)
+         ("M-g f" . consult-flymake) ;; Alternative: consult-flycheck
+         ("M-g g" . consult-goto-line)	 ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line) ;; orig. goto-line
+         ("M-g o" . consult-outline) ;; Alternative: consult-org-heading
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-imenu-multi)
+         ;; M-s bindings in `search-map'
+         ("M-s d" . consult-find) ;; Alternative: consult-fd
+         ("M-s c" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history) ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history) ;; orig. isearch-edit-string
+         ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)	;; needed by consult-line to detect isearch
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history) ;; orig. next-matching-history-element
+         ("M-r" . consult-history)) ;; orig. previous-matching-history-element
 
   ;; Enable automatic preview at point in the *Completions* buffer. This is
   ;; relevant when you use the default completion UI.
@@ -275,7 +284,7 @@
   ;; preview for `consult-register', `consult-register-load',
   ;; `consult-register-store' and the Emacs built-ins.
   (setq register-preview-delay 0.5
-	register-preview-function #'consult-register-format)
+        register-preview-function #'consult-register-format)
 
   ;; Optionally tweak the register preview window.
   ;; This adds thin lines, sorting and hides the mode line of the window.
@@ -283,7 +292,7 @@
 
   ;; Use Consult to select xref locations with preview
   (setq xref-show-xrefs-function #'consult-xref
-	xref-show-definitions-function #'consult-xref)
+        xref-show-definitions-function #'consult-xref)
 
   ;; Configure other variables and modes in the :config section,
   ;; after lazily loading the package.
@@ -291,19 +300,19 @@
 
   ;; Optionally configure preview. The default value
   ;; is 'any, such that any key triggers the preview.
-  (setq consult-preview-key 'any)
+  ;; (setq consult-preview-key 'any)
   ;; (setq consult-preview-key "M-.")
   ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
   ;; For some commands and buffer sources it is useful to configure the
   ;; :preview-key on a per-command basis using the `consult-customize' macro.
-  ;; (consult-customize ;;NOTE: Disabled due to weird leaf errors
-  ;;  consult-theme :preview-key '(:debounce 0.2 any)
-  ;;  consult-ripgrep consult-git-grep consult-grep
-  ;;  consult-bookmark consult-recent-file consult-xref
-  ;;  consult--source-bookmark consult--source-file-register
-  ;;  consult--source-recent-file consult--source-project-recent-file
-  ;;  ;; :preview-key "M-."
-  ;;  :preview-key '(:debounce 0.4 any))
+  (consult-customize
+   consult-theme :preview-key '(:debounce 0.2 any)
+   consult-ripgrep consult-git-grep consult-grep
+   consult-bookmark consult-recent-file consult-xref
+   consult--source-bookmark consult--source-file-register
+   consult--source-recent-file consult--source-project-recent-file
+   ;; :preview-key "M-."
+   :preview-key '(:debounce 0.4 any))
 
   ;; Optionally configure the narrowing key.
   ;; Both < and C-+ work reasonably well.
@@ -324,10 +333,11 @@
 ;;;; 4. projectile.el (projectile-project-root)
   (autoload 'projectile-project-root "projectile")
   (setq consult-project-function (lambda (_) (projectile-project-root)))
-;;;; 5. No project support
+  ;; 5. No project support
   ;; (setq consult-project-function nil)
   )
-(leaf consult-flycheck)
+
+(use-package consult-flycheck)
 
 ;; cape
 ;; Enable Corfu completion UI
@@ -336,7 +346,7 @@
 ;; to have everything standardized, emacs' current model
 ;; just isn't set up well for LSP.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (leaf corfu										        ;;
+;; (use-package corfu										        ;;
 ;; 											        ;;
 ;;   :after orderless									        ;;
 ;;   :custom (										        ;;
@@ -373,21 +383,21 @@
 ;;   (corfu-popupinfo-mode))								        ;;
 ;; 											        ;;
 ;; 											        ;;
-;; (leaf corfu-prescient ;; use prescient to filter corfu				        ;;
+;; (use-package corfu-prescient ;; use prescient to filter corfu				        ;;
 ;;   :after corfu									        ;;
 ;;   :init (corfu-prescient-mode 1))							        ;;
-;; (leaf corfu-terminal									        ;;
+;; (use-package corfu-terminal									        ;;
 ;;   :config										        ;;
 ;;   (unless (display-graphic-p)							        ;;
 ;;     (corfu-terminal-mode 1)))							        ;;
 ;;   											        ;;
-;;   (leaf nerd-icons-corfu								        ;;
+;;   (use-package nerd-icons-corfu								        ;;
 ;;     :after corfu									        ;;
 ;;     :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))	        ;;
 ;; 											        ;;
 ;; 											        ;;
 ;; ;; Use Dabbrev with Corfu!								        ;;
-;; (leaf dabbrev									        ;;
+;; (use-package dabbrev									        ;;
 ;;   ;; Swap M-/ and C-M-/								        ;;
 ;;   :bind (("M-/" . dabbrev-completion)						        ;;
 ;; 	 ("C-M-/" . dabbrev-expand))							        ;;
@@ -397,7 +407,7 @@
 ;; 											        ;;
 ;; 											        ;;
 ;; 											        ;;
-;; (leaf cape										        ;;
+;; (use-package cape										        ;;
 ;;   ;; Bind dedicated completion commands						        ;;
 ;;   ;; Alternative prefix keys: C-c p, M-p, M-+, ...					        ;;
 ;; 											        ;;
@@ -447,25 +457,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(leaf marginalia
+(use-package marginalia
   ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
   ;; available in the *Completions* buffer, add it to the
   ;; `completion-list-mode-map'.
-  :bind ((:minibuffer-local-map
-	  ("M-A" . marginalia-cycle))
-	 (:completion-list-mode-map
-	  ("M-A" . marginalia-cycle)))
+  :bind (:map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
 
   ;; The :init section is always executed.
   :init
 
-  ;; Marginalia must be activated in the :init section of leaf such that
+  ;; Marginalia must be activated in the :init section of use-package such that
   ;; the mode gets enabled right away. Note that this forces loading the
   ;; package.
   (marginalia-mode))
-(leaf embark
-  :bind (("C-'" . embark-act) ;; pick some comfortable binding
-	 ("C-;" . embark-dwim) ;; good alternative: M-.
+
+(use-package embark
+  :bind (("C-'" . embark-act)	      ;; pick some comfortable binding
+	 ("C-;" . embark-dwim)	      ;; good alternative: M-.
 	 ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
   :init
   (setq prefix-help-command #'embark-prefix-help-command)
@@ -473,21 +482,20 @@
 	       '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
 		 nil
 		 (window-parameters (mode-line-format . none)))))
-(leaf embark-consult
+(use-package embark-consult
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
 ;; projectile
-(leaf projectile
+(use-package projectile
   :ensure t
   :init
-  (projectile-mode 1)
-  :bind ((:projectile-mode-map
-	  ;;("s-p" . projectile-command-map)
-	  ("C-c p" . projectile-command-map))))
-
+  (projectile-mode +1)
+  :bind (:map projectile-mode-map
+              ("s-p" . projectile-command-map)
+              ("C-c p" . projectile-command-map)))
 
 ;; lisp editing tools
-(leaf lispy
+(use-package lispy
   :init
   (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
   (defun conditionally-enable-lispy ()
@@ -495,15 +503,15 @@
       (lispy-mode 1)))
   (add-hook 'minibuffer-setup-hook 'conditionally-enable-lispy))
 
-(leaf lispyville
-  :hook ((emacs-lisp-mode-hook . lispyville-mode))
+(use-package lispyville
+  :hook ((emacs-lisp-mode . lispyville-mode))
   :config
   (lispyville-set-key-theme '(operators c-w additional)))
 
-(leaf flycheck
+(use-package flycheck
   :init
   (add-hook 'after-init-hook #'global-flycheck-mode))
-;; (Leaf lsp-mode
+;; (Use-Package lsp-mode
 ;;   :custom
 ;;   (lsp-completion-provider :none) ;; we use Corfu!
 ;;   :init
@@ -566,7 +574,7 @@
 ;;       (gcmh-set-high-threshold)								        ;;
 ;;       (setq +lsp--optimization-init-p t))))							        ;;
 ;; 												        ;;
-;; (leaf eglot											        ;;
+;; (use-package eglot											        ;;
 ;;   :hook ((eglot-managed-mode . +lsp-optimization-mode)					        ;;
 ;; 	 (nix-ts-mode . eglot-ensure)							        ;;
 ;; 	 (rust-ts-mode . eglot-ensure))							        ;;
@@ -595,8 +603,8 @@
 ;; 		       #'cape-file))))								        ;;
 ;; 												        ;;
 ;;   (add-hook 'eglot-managed-mode-hook #'my/eglot-capf))					        ;;
-;; (leaf consult-eglot)										        ;;
-;; (leaf flycheck-eglot										        ;;
+;; (use-package consult-eglot)										        ;;
+;; (use-package flycheck-eglot										        ;;
 ;;   :after (flycheck eglot)									        ;;
 ;;   :custom (flycheck-eglot-exclusive . nil)							        ;;
 ;;   :config											        ;;
@@ -605,15 +613,15 @@
 
 (use-package lsp-bridge
   :after yasnippet
-  :custom ((lsp-bridge-nix-lsp-server . "nil") ;nil the lsp - not the value
+  :custom ((lsp-bridge-nix-lsp-server "nil") ;nil the lsp - not the value
 	   )
   :init (global-lsp-bridge-mode))
-(leaf yasnippet
+(use-package yasnippet
   :init (yas-global-mode 1)) 			;needed for lsp-bridge, can still template in tempel
-(leaf yasnippet-snippets)
-(leaf markdown-mode)
+(use-package yasnippet-snippets)
+(use-package markdown-mode)
 
-(leaf tempel
+(use-package tempel
   ;; Require trigger prefix before template name when completing.
   ;; :custom
   ;; (tempel-trigger-prefix "<")
@@ -621,7 +629,6 @@
   :bind (("M-+" . tempel-complete) ;; Alternative tempel-expand
 	 ("M-*" . tempel-insert))
 
-  :init
 
   ;; commented due to useing lsp-bridge
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -651,12 +658,11 @@
 
 ;; Optional: Add tempel-collection.
 ;; The package is young and doesn't have comprehensive coverage.
-(leaf tempel-collection)
+(use-package tempel-collection)
 
 ;; spellcheck
-(leaf jinx
-  :hook (
-	 (emacs-startup . global-jinx-mode))
+(use-package jinx
+  :config (global-jinx-mode)
   :bind (("M-$" . jinx-correct)
 	 ("C-M-$" . jinx-languages)))
 
@@ -664,7 +670,7 @@
 
 ;; ligatures
 
-(leaf ligature
+(use-package ligature
   :config
   ;; Enable the "www" ligature in every possible major mode
   (ligature-set-ligatures 't '("www"))
@@ -690,14 +696,14 @@
   ;; per mode with `ligature-mode'.
   (global-ligature-mode t))
 
-(leaf all-the-icons
+(use-package all-the-icons
   :if (display-graphic-p))
 
-(leaf spacious-padding
+(use-package spacious-padding
   :custom (spacious-padding-widths)
   :init (spacious-padding-mode))
 
-(leaf helpful
+(use-package helpful
   :bind (("C-h f" . helpful-callable)
 	 ("C-h v" . helpful-variable)
 	 ("C-h k" . helpful-key)
@@ -706,7 +712,7 @@
 	 ("C-c F" . helpful-function)
 	 ))
 
-(leaf centaur-tabs
+(use-package centaur-tabs
   :custom ((centaur-tabs-mode . t)
 	   (centaur-tabs-style . "rounded"))
   ;; (centaur-tabs-close-button .  "X") ;; disable close button
@@ -714,17 +720,16 @@
 	 ("C-<prior>" . centaur-tabs-backward)
 	 ("C-<next>" . centaur-tabs-forward)))
 
-(leaf highlight-indent-guides
+(use-package highlight-indent-guides
   :hook
-  (prog-mode-hook . highlight-indent-guides-mode))
+  (prog-mode . highlight-indent-guides-mode))
 
-(leaf magit) 				;"But I will always use magit"
-(leaf vterm)
-(leaf eradio
-  :custom (eradio-player . 'mpv))
+(use-package magit) 				;"But I will always use magit"
+(use-package vterm)
+(use-package eradio
+  :custom (eradio-player 'mpv))
 
-(leaf hl-todo
-  :hook ()
+(use-package hl-todo
   :init (global-hl-todo-mode)
   )
 (use-package flycheck-hl-todo
@@ -734,9 +739,9 @@
 (use-package consult-todo)
 ;; languages
 ;;; nix-mode
-(leaf nix-mode
+(use-package nix-mode
   :mode "\\.nix\\'")
-(leaf nix-ts-mode
+(use-package nix-ts-mode
   :mode "\\.nix\\'")
 
 ;;; rust
