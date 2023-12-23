@@ -84,12 +84,12 @@
 ;; end requirements for leaf
 
 ;; performance stuff
-(leaf gcmh
-  :custom ((gcmh-idle-delay . 'auto)
-	   (gcmh-auto-idle-delay-factor .  10)
-	   (gcmh-high-cons-threshold . (* 16 1024 1024))) ;16mb
-  :init (gcmh-mode))					  ; this errors for some reason, but it still activates
-
+(use-package gcmh 			;for some reason leaf causes the error, this doesnt
+ :custom ((gcmh-idle-delay . 'auto)
+	  (gcmh-auto-idle-delay-factor .  10)
+	  (gcmh-high-cons-threshold . (* 16 1024 1024))) ;16mb
+ :hook (after-init-hook . (gcmh-mode 1))
+ )
 (leaf hyperbole)
 (leaf evil
   :custom (
@@ -603,11 +603,11 @@
 ;;   (global-flycheck-eglot-mode 1))								        ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(leaf lsp-bridge
-  :init (global-lsp-bridge-mode)
-  :custom (
-	   (lsp-bridge-nix-lsp-server . "nil")
-	   ))
+(use-package lsp-bridge
+  :after yasnippet
+  :custom ((lsp-bridge-nix-lsp-server . "nil") ;nil the lsp - not the value
+	   )
+  :init (global-lsp-bridge-mode))
 (leaf yasnippet
   :init (yas-global-mode 1)) 			;needed for lsp-bridge, can still template in tempel
 (leaf yasnippet-snippets)
@@ -705,6 +705,7 @@
 	 ("C-c C-d" . helpful-at-point)
 	 ("C-c F" . helpful-function)
 	 ))
+
 (leaf centaur-tabs
   :custom ((centaur-tabs-mode . t)
 	   (centaur-tabs-style . "rounded"))
@@ -712,6 +713,7 @@
   :bind (
 	 ("C-<prior>" . centaur-tabs-backward)
 	 ("C-<next>" . centaur-tabs-forward)))
+
 (leaf highlight-indent-guides
   :hook
   (prog-mode-hook . highlight-indent-guides-mode))
@@ -720,6 +722,16 @@
 (leaf vterm)
 (leaf eradio
   :custom (eradio-player . 'mpv))
+
+(leaf hl-todo
+  :hook ()
+  :init (global-hl-todo-mode)
+  )
+(use-package flycheck-hl-todo
+  :defer 5 				;wait for the other checkers
+  :config (flycheck-hl-todo-setup)
+  )
+(use-package consult-todo)
 ;; languages
 ;;; nix-mode
 (leaf nix-mode
