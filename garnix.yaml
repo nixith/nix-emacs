@@ -11,5 +11,4 @@ builds: # optional
   # builds
   include: # optional
     # What builds to include. This is a list of *attribute matchers*, of the form `x.y.z` or `x.y`. For example, `packages.x86_64-linux.*`, or `*.*`. Two-place matchers only match two-place matchers, and three-place matchers only match three-place matchers. '*' is the wildcard.
-    - defaultPackage.*
-    - devShell.*
+    - '*x86_64-linux.*'
