@@ -1,4 +1,5 @@
 ;;; emacs.el  my emacs init file -*- lexical-binding: t; -*-
+;; TODO: move to literate config
 
 ;;; Commentary:
 ;;; Code:
@@ -53,6 +54,7 @@
 (tool-bar-mode -1)          ; Disable the toolbar
 (tooltip-mode -1)           ; Disable tooltips
 (set-fringe-mode 10)        ; Give some breathing room
+(set-frame-font "Lilex Nerd Font")
 
 (menu-bar-mode -1)            ; Disable the menu bar
 ;; Set up the visible bell
@@ -114,7 +116,20 @@
 	   ;; 	   (evil-want-integration . t)
 	   )
   :config
-  (evil-mode 1))
+  (evil-mode 1)
+  )
+
+(use-package evil-goggles ;; TODO: figure out why this isn't working
+  :afer evil
+  :config
+  (evil-goggles-mode)
+
+  ;; optionally use diff-mode's faces; as a result, deleted text
+  ;; will be highlighed with `diff-removed` face which is typically
+  ;; some red color (as defined by the color theme)
+  ;; other faces such as `diff-added` will be used for other actions
+  (evil-goggles-use-diff-faces))
+
 ;; (use-package evil-collection ;;TODO: figure out why this breaks lispy
 ;;   :after evil
 ;;   :custom (electric-pair-mode . t)
@@ -696,6 +711,19 @@
   ;; per mode with `ligature-mode'.
   (global-ligature-mode t))
 
+
+(use-package unicode-fonts
+   :config
+    (unicode-fonts-setup))
+;; let writing modes use non-monospace fonts
+
+(use-package mixed-pitch ;;TODO: investigate & configure
+  :if (display-graphic-p)
+  :hook
+  ;; If you want it in all text modes:
+  (text-mode . mixed-pitch-mode))
+(use-package writeroom-mode) 		;activate manually when I want too/
+
 (use-package all-the-icons
   :if (display-graphic-p))
 
@@ -743,6 +771,9 @@
   :mode "\\.nix\\'")
 (use-package nix-ts-mode
   :mode "\\.nix\\'")
+;; yuck (for eww bar)
+(use-package yuck-mode
+  :mode "\\.yuck\\'")
 
 ;;; rust
 
