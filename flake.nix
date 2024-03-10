@@ -21,7 +21,7 @@
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = import nixpkgs {
-          system = system;
+          inherit system;
           overlays = [
             emacs-overlay.overlays.default
             #emacs-ng.overlays.default
@@ -40,8 +40,11 @@
                 six
                 setuptools
                 paramiko
-                rapidfuzz
               ]))
+          pkgs.emacs-lsp-booster
+          pkgs.python3
+          pkgs.tetex
+          pkgs.plantuml
         ];
         # ] ++ with pkgs.python311Packages [
         #       epc
@@ -117,8 +120,8 @@
             epkgs.vterm # this supposedly neesd to go here. Maybe due to external library issues?
             epkgs.treesit-grammars.with-all-grammars
             epkgs.use-package
-	    epkgs.jinx # needs libenchant
-	    epkgs.lsp-bridge # just in case
+            epkgs.jinx # needs libenchant
+            epkgs.lsp-bridge # just in case
           ];
         };
       }

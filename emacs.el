@@ -1,16 +1,15 @@
-;;; emacs.el  my emacs init file -*- lexical-binding: t; -*-
+;;; emacs.el --- my emacs init file -*- lexical-binding: t -*-
 ;; TODO: move to literate config
 
 ;;; Commentary:
 ;;; Code:
 ;;; from DOOM emacs
-
+;; (setenv "LSP_USE_PLISTS" "true")
 (setq gc-cons-threshold most-positive-fixnum) ;v large GC buffer, gcmh-mode cleans it up later
 (setq load-prefer-newer noninteractive)		;I believer nix takes care of this as files loaded are always compiled and static
 (setq-default bidi-display-reordering 'left-to-right ;I don't use bidirectional text (hebrew, arabic, etc), so diabling it helps performance
               bidi-paragraph-direction 'left-to-right
 	      bidi-inhibit-bpa t)
-
 ;; Reduce rendering/line scan work for Emacs by not rendering cursors or regions
 ;; in non-focused windows.
 (setq-default cursor-in-non-selected-windows nil)
@@ -67,9 +66,10 @@
 (prettify-symbols-mode t)
 
 ;; Disable line numbers for some modes
-(dolist (mode '(org-mode-hook
+(dolist (mode '(org-mode-hook 
 		term-mode-hook
-		eshell-mode-hook))
+		eshell-mode-hook
+		pdf-view-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 
@@ -108,19 +108,21 @@
 ;; (use-package hyperbole 			;TODO: investiage error for void symbol func def
 ;;   :config (hyperbole-mode))
 (use-package evil
+  :init 
+	   (setq evil-want-keybinding nil) ; needed for evil-collection
+	   (setq evil-want-integration 't)
+	 
   :custom (
 	   ;; (evil-shift-width 4)
 	   (evil-undo-system 'undo-redo)
 	   (evil-want-c-u-scroll t)
-	   ;; 	   (evil-want-keybinding . nil) ; needed for evil-collection
-	   ;; 	   (evil-want-integration . t)
 	   )
   :config
   (evil-mode 1)
   )
 
 (use-package evil-goggles ;; TODO: figure out why this isn't working
-  :afer evil
+  :after evil
   :config
   (evil-goggles-mode)
 
@@ -130,19 +132,44 @@
   ;; other faces such as `diff-added` will be used for other actions
   (evil-goggles-use-diff-faces))
 
-;; (use-package evil-collection ;;TODO: figure out why this breaks lispy
-;;   :after evil
-;;   :custom (electric-pair-mode . t)
+(use-package evil-collection ;;TODO: figure out why this breaks lispy
+  :after evil
+  :custom (electric-pair-mode t)
 	  
-;;   :config
-;;   (evil-collection-init))
+  :config
+  (evil-collection-init))
 
 
-(use-package org)
+(use-package org
+  :ensure org-contrib
+  :custom (
+	   (org-confirm-babel-evaluate . nil)
+	   )
+  )
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (dot . t)
+   (gnuplot . t)
+   (python . t)
+   (plantuml . t)
+   (java . t)
+   (shell . t)
+   ))
 (use-package org-modern
   :hook (
 	 (org-mode . org-modern-mode)
 	 (org-agenda-finalize . org-modern-agenda)))
+;; plantuml
+(use-package plantuml-mode
+  :after org
+  :config (add-to-list
+	    'org-src-lang-modes '("plantuml" . plantuml))
+  (setq plantuml-executable-path (executable-find "plantuml"))
+  (setq plantuml-default-exec-mode 'executable)
+  (setq org-plantuml-exec-mode 'plantuml)
+  (setq org-plantuml-executable-path (executable-find "plantuml"))
+  )
 
 
 (use-package rainbow-mode
@@ -162,7 +189,6 @@
 (use-package catppuccin-theme
   :init (load-theme 'catppuccin :no-confirm))
 
-;; Enable vertico
 ;; Enable vertico
 (use-package vertico
   :init
@@ -232,8 +258,15 @@
   (setq completion-styles '(orderless partial-completion basic)
 	completion-category-defaults nil
 	completion-category-overrides nil))
-
+(use-package projectile
+    :init
+  (projectile-mode +1)
+  :bind (:map projectile-mode-map
+              ("s-p" . projectile-command-map)
+              ("C-c p" . projectile-command-map)))
+;; Example configuration for Consult
 (use-package consult
+  :after projectile
   ;; Replace bindings. Lazily loaded due by `use-package'.
   :bind (;; C-c bindings in `mode-specific-map'
          ("C-c M-x" . consult-mode-command)
@@ -243,31 +276,31 @@
          ("C-c i" . consult-info)
          ([remap Info-search] . consult-info)
          ;; C-x bindings in `ctl-x-map'
-         ("C-x M-:" . consult-complex-command) ;; orig. repeat-complex-command
-         ("C-x b" . consult-buffer) ;; orig. switch-to-buffer
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
          ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-         ("C-x 5 b" . consult-buffer-other-frame) ;; orig. switch-to-buffer-other-frame
-         ("C-x t b" . consult-buffer-other-tab)	;; orig. switch-to-buffer-other-tab
-         ("C-x r b" . consult-bookmark)		;; orig. bookmark-jump
-         ("C-x p b" . consult-project-buffer) ;; orig. project-switch-to-buffer
+         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
          ;; Custom M-# bindings for fast register access
          ("M-#" . consult-register-load)
-         ("M-'" . consult-register-store) ;; orig. abbrev-prefix-mark (unrelated)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
          ("C-M-#" . consult-register)
          ;; Other custom bindings
-         ("M-y" . consult-yank-pop) ;; orig. yank-pop
+         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
          ;; M-g bindings in `goto-map'
          ("M-g e" . consult-compile-error)
-         ("M-g f" . consult-flymake) ;; Alternative: consult-flycheck
-         ("M-g g" . consult-goto-line)	 ;; orig. goto-line
-         ("M-g M-g" . consult-goto-line) ;; orig. goto-line
-         ("M-g o" . consult-outline) ;; Alternative: consult-org-heading
+         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+         ("M-g g" . consult-goto-line)             ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
          ("M-g m" . consult-mark)
          ("M-g k" . consult-global-mark)
          ("M-g i" . consult-imenu)
          ("M-g I" . consult-imenu-multi)
          ;; M-s bindings in `search-map'
-         ("M-s d" . consult-find) ;; Alternative: consult-fd
+         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
          ("M-s c" . consult-locate)
          ("M-s g" . consult-grep)
          ("M-s G" . consult-git-grep)
@@ -279,14 +312,14 @@
          ;; Isearch integration
          ("M-s e" . consult-isearch-history)
          :map isearch-mode-map
-         ("M-e" . consult-isearch-history) ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch-history) ;; orig. isearch-edit-string
-         ("M-s l" . consult-line) ;; needed by consult-line to detect isearch
-         ("M-s L" . consult-line-multi)	;; needed by consult-line to detect isearch
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
          ;; Minibuffer history
          :map minibuffer-local-map
-         ("M-s" . consult-history) ;; orig. next-matching-history-element
-         ("M-r" . consult-history)) ;; orig. previous-matching-history-element
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
 
   ;; Enable automatic preview at point in the *Completions* buffer. This is
   ;; relevant when you use the default completion UI.
@@ -339,137 +372,124 @@
 
   ;; By default `consult-project-function' uses `project-root' from project.el.
   ;; Optionally configure a different project root function.
-;;;; 1. project.el (the default)
+  ;;;; 1. project.el (the default)
   ;; (setq consult-project-function #'consult--default-project--function)
-;;;; 2. vc.el (vc-root-dir)
+  ;;;; 2. vc.el (vc-root-dir)
   ;; (setq consult-project-function (lambda (_) (vc-root-dir)))
-;;;; 3. locate-dominating-file
+  ;;;; 3. locate-dominating-file
   ;; (setq consult-project-function (lambda (_) (locate-dominating-file "." ".git")))
-;;;; 4. projectile.el (projectile-project-root)
+  ;; 4. projectile.el (projectile-project-root)
   (autoload 'projectile-project-root "projectile")
   (setq consult-project-function (lambda (_) (projectile-project-root)))
   ;; 5. No project support
   ;; (setq consult-project-function nil)
-  )
-
+)
 (use-package consult-flycheck)
-
 ;; cape
 ;; Enable Corfu completion UI
 ;; See the Corfu README for more configuration tips.
 ;; disabled in favor of lsp-bridge. As nice as it would be
 ;; to have everything standardized, emacs' current model
 ;; just isn't set up well for LSP.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (use-package corfu										        ;;
-;; 											        ;;
-;;   :after orderless									        ;;
-;;   :custom (										        ;;
-;; 	   (corfu-cycle . t)								        ;;
-;; 	   (corfu-auto . t)	   ;; Enable auto completion				        ;;
-;; 	   (corfu-separator . ?\s) ;; Orderless field separator			        ;;
-;; 	   (corfu-auto-prefix . 2)							        ;;
-;; 	   (corfu-auto-delay . 0.0)							        ;;
-;; 	   (corfu-popupinfo-delay . 1)						        ;;
-;; 	   ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary	        ;;
-;; 	   ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match        ;;
-;; 	   ;; (corfu-preview-current nil)    ;; Disable current candidate preview	        ;;
-;; 	   (corfu-preselect 'prompt) ;; Preselect the prompt				        ;;
-;; 	   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches	        ;;
-;; 	   ;; (corfu-scroll-margin 5)        ;; Use scroll margin			        ;;
-;; 	   )										        ;;
-;;   ;; Enable Corfu only for certain modes.						        ;;
-;;   ;; :hook ((prog-mode . corfu-mode)							        ;;
-;;   ;;        (shell-mode . corfu-mode)						        ;;
-;;   ;;        (eshell-mode . corfu-mode))						        ;;
-;; 											        ;;
-;;   ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can	        ;;
-;;   ;; be usesed globally (M-/).  See also the customization variable			        ;;
-;;   ;; `globally-corfu-modes' to exclude certain modes.				        ;;
-;;   :bind										        ;;
-;;   (:corfu-map (									        ;;
-;; 	       ("TAB" . corfu-next)							        ;;
-;; 	       ([tab] . corfu-next)							        ;;
-;; 	       ("S-TAB" . corfu-previous)						        ;;
-;; 	       ([backtab] . corfu-previous)))					        ;;
-;;   :init										        ;;
-;;   (global-corfu-mode)								        ;;
-;;   (corfu-history-mode)								        ;;
-;;   (corfu-popupinfo-mode))								        ;;
-;; 											        ;;
-;; 											        ;;
-;; (use-package corfu-prescient ;; use prescient to filter corfu				        ;;
-;;   :after corfu									        ;;
-;;   :init (corfu-prescient-mode 1))							        ;;
-;; (use-package corfu-terminal									        ;;
-;;   :config										        ;;
-;;   (unless (display-graphic-p)							        ;;
-;;     (corfu-terminal-mode 1)))							        ;;
-;;   											        ;;
-;;   (use-package nerd-icons-corfu								        ;;
-;;     :after corfu									        ;;
-;;     :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))	        ;;
-;; 											        ;;
-;; 											        ;;
-;; ;; Use Dabbrev with Corfu!								        ;;
-;; (use-package dabbrev									        ;;
-;;   ;; Swap M-/ and C-M-/								        ;;
-;;   :bind (("M-/" . dabbrev-completion)						        ;;
-;; 	 ("C-M-/" . dabbrev-expand))							        ;;
-;;   ;; Other useful Dabbrev configurations.						        ;;
-;;   :custom										        ;;
-;;   (dabbrev-ignored-buffer-regexps . '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'")))		        ;;
-;; 											        ;;
-;; 											        ;;
-;; 											        ;;
-;; (use-package cape										        ;;
-;;   ;; Bind dedicated completion commands						        ;;
-;;   ;; Alternative prefix keys: C-c p, M-p, M-+, ...					        ;;
-;; 											        ;;
-;;   :bind (("C-c p p" . completion-at-point) ;; capf					        ;;
-;; 	 ("C-c p t" . complete-tag)	   ;; etags					        ;;
-;; 	 ("C-c p d" . cape-dabbrev)	   ;; or dabbrev-completion			        ;;
-;; 	 ("C-c p h" . cape-history)							        ;;
-;; 	 ("C-c p f" . cape-file)							        ;;
-;; 	 ("C-c p k" . cape-keyword)							        ;;
-;; 	 ("C-c p s" . cape-elisp-symbol)						        ;;
-;; 	 ("C-c p e" . cape-elisp-block)						        ;;
-;; 	 ("C-c p a" . cape-abbrev)							        ;;
-;; 	 ("C-c p l" . cape-line)							        ;;
-;; 	 ("C-c p w" . cape-dict)							        ;;
-;; 	 ("C-c p :" . cape-emoji)							        ;;
-;; 	 ("C-c p \\" . cape-tex)							        ;;
-;; 	 ("C-c p _" . cape-tex)							        ;;
-;; 	 ("C-c p ^" . cape-tex)							        ;;
-;; 	 ("C-c p &" . cape-sgml)							        ;;
-;; 	 ("C-c p r" . cape-rfc1345))							        ;;
-;;   :init										        ;;
-;;   ;; Add to the global default value of `completion-at-point-functions' which is	        ;;
-;;   ;; used by `completion-at-point'.  The order of the functions matters, the		        ;;
-;;   ;; first function returning a result wins.  Note that the list of buffer-local	        ;;
-;;   ;; completion functions takes precedence over the global list.			        ;;
-;;   (add-to-list 'completion-at-point-functions #'cape-keyword)			        ;;
-;;   (add-to-list 'completion-at-point-functions #'cape-dabbrev)			        ;;
-;;   (add-to-list 'completion-at-point-functions #'cape-file)				        ;;
-;;   (add-to-list 'completion-at-point-functions #'cape-elisp-block)			        ;;
-;;   ;;(add-to-list 'completion-at-point-functions #'cape-history)			        ;;
-;;   ;;(add-to-list 'completion-at-point-functions #'cape-sgml)				        ;;
-;;   ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)			        ;;
-;;   ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)			        ;;
-;;   ;;(add-to-list 'completion-at-point-functions #'cape-dict)				        ;;
-;;   (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)			        ;;
-;;   ;;(add-to-list 'completion-at-point-functions #'cape-line)				        ;;
-;;   (add-to-list 'completion-at-point-functions #'cape-tex)				        ;;
-;;   (add-to-list 'completion-at-point-functions #'cape-emoji)				        ;;
-;;   (defun my/setup-elisp ()								        ;;
-;;     (setq-local completion-at-point-functions					        ;;
-;; 		`(,(cape-super-capf							        ;;
-;; 		    #'elisp-completion-at-point						        ;;
-;; 		    #'cape-dabbrev)							        ;;
-;; 		  cape-file)								        ;;
-;; 		cape-dabbrev-min-length 5))						        ;;
-;;   (add-hook 'emacs-lisp-mode-hook #'my/setup-elisp))					        ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package corfu
+  ;; Optional customizations
+  :custom (
+  (corfu-cycle t)	;; Enable cycling for `corfu-next/previous'
+  (corfu-auto t)	;; Enable auto completion
+  (corfu-separator ?\s)	;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  (corfu-preselect 'prompt) ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  (corfu-scroll-margin 5) ;; Use scroll margin
+  (corfu-quit-no-match 'separator))
+
+  ;; Enable Corfu only for certain modes.
+  ;; :hook ((prog-mode . corfu-mode)
+  ;;        (shell-mode . corfu-mode)
+  ;;        (eshell-mode . corfu-mode))
+
+  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
+  ;; be used globally (M-/).  See also the customization variable
+  ;; `global-corfu-modes' to exclude certain modes.
+  :init
+  (global-corfu-mode))
+ 											        
+ (use-package corfu-prescient ;; use prescient to filter corfu				        
+   :after corfu									        
+   :init (setq corfu-prescient-mode 1))							        
+ (use-package corfu-terminal									        
+   :config										        
+   (unless (display-graphic-p)							        
+     (corfu-terminal-mode 1)))							        
+   											        
+   (use-package nerd-icons-corfu								        
+     :after corfu									        
+     :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+
+;; Use Dabbrev with Corfu!
+(use-package dabbrev
+  ;; Swap M-/ and C-M-/
+  :bind (("M-/" . dabbrev-completion)
+         ("C-M-/" . dabbrev-expand))
+  :config
+  (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+  ;; Since 29.1, use `dabbrev-ignored-buffer-regexps' on older.
+  ;; (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+  ;; (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+  )
+ 											        ;;
+ 											        ;;
+ 											        ;;
+ (use-package cape										        ;;
+   ;; Bind dedicated completion commands						        ;;
+   ;; Alternative prefix keys: C-c p, M-p, M-+, ...					        ;;
+ 											        ;;
+   :bind (("C-c p p" . completion-at-point) ;; capf					        ;;
+ 	 ("C-c p t" . complete-tag)	   ;; etags					        ;;
+ 	 ("C-c p d" . cape-dabbrev)	   ;; or dabbrev-completion			        ;;
+ 	 ("C-c p h" . cape-history)							        ;;
+ 	 ("C-c p f" . cape-file)							        ;;
+ 	 ("C-c p k" . cape-keyword)							        ;;
+ 	 ("C-c p s" . cape-elisp-symbol)						        ;;
+ 	 ("C-c p e" . cape-elisp-block)						        ;;
+ 	 ("C-c p a" . cape-abbrev)							        ;;
+ 	 ("C-c p l" . cape-line)							        ;;
+ 	 ("C-c p w" . cape-dict)							        ;;
+ 	 ("C-c p :" . cape-emoji)							        ;;
+ 	 ("C-c p \\" . cape-tex)							        ;;
+ 	 ("C-c p _" . cape-tex)							        ;;
+ 	 ("C-c p ^" . cape-tex)							        ;;
+ 	 ("C-c p &" . cape-sgml)							        ;;
+ 	 ("C-c p r" . cape-rfc1345))							        ;;
+   :init										        ;;
+   ;; Add to the global default value of `completion-at-point-functions' which is	        ;;
+   ;; used by `completion-at-point'.  The order of the functions matters, the		        ;;
+   ;; first function returning a result wins.  Note that the list of buffer-local	        ;;
+   ;; completion functions takes precedence over the global list.			        ;;
+   (add-to-list 'completion-at-point-functions #'cape-keyword)			        ;;
+   (add-to-list 'completion-at-point-functions #'cape-dabbrev)			        ;;
+   (add-to-list 'completion-at-point-functions #'cape-file)				        ;;
+   (add-to-list 'completion-at-point-functions #'cape-elisp-block)			        ;;
+   ;;(add-to-list 'completion-at-point-functions #'cape-history)			        ;;
+   ;;(add-to-list 'completion-at-point-functions #'cape-sgml)				        ;;
+   ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)			        ;;
+   ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)			        ;;
+   ;;(add-to-list 'completion-at-point-functions #'cape-dict)				        ;;
+   (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)			        ;;
+   ;;(add-to-list 'completion-at-point-functions #'cape-line)				        ;;
+   (add-to-list 'completion-at-point-functions #'cape-tex)				        ;;
+   (add-to-list 'completion-at-point-functions #'cape-emoji)				        ;;
+   (defun my/setup-elisp ()								        ;;
+     (setq-local completion-at-point-functions					        ;;
+ 		`(,(cape-super-capf							        ;;
+ 		    #'elisp-completion-at-point						        ;;
+ 		    #'cape-dabbrev)							        ;;
+ 		  cape-file)								        ;;
+ 		cape-dabbrev-min-length 5))						        ;;
+   (add-hook 'emacs-lisp-mode-hook #'my/setup-elisp))					        ;;
 
 
 (use-package marginalia
@@ -500,14 +520,14 @@
 (use-package embark-consult
   :hook
   (embark-collect-mode . consult-preview-at-point-mode))
-;; projectile
-(use-package projectile
-  :ensure t
-  :init
-  (projectile-mode +1)
-  :bind (:map projectile-mode-map
-              ("s-p" . projectile-command-map)
-              ("C-c p" . projectile-command-map)))
+;;projectile
+;; (use-package projectile
+;; :ensure t
+;; :init
+;; (projectile-mode +1)
+;; :bind (:map projectile-mode-map
+;;             ("s-p" . projectile-command-map)
+;;             ("C-c p" . projectile-command-map)))
 
 ;; lisp editing tools
 (use-package lispy
@@ -525,70 +545,129 @@
 
 (use-package flycheck
   :init
-  (add-hook 'after-init-hook #'global-flycheck-mode))
-;; (Use-Package lsp-mode
-;;   :custom
-;;   (lsp-completion-provider :none) ;; we use Corfu!
-;;   :init
-;;   (setq lsp-keymap-prefix "C-c l")
-;;   (defun my/lsp-mode-setup-completion ()
-;;     (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
-;;           '(flex))) ;; Configure flex
-;;   :hook (
-;; 	 (lsp-completion-mode . my/lsp-mode-setup-completion)
-;; 	 (lsp-mode . lsp-enable-which-key-integration)
-;; 	 ;;follow this pattern for everything you want an lsp for
-;; 	 (nix-ts-mode . lsp)
-;; 	 (rust-ts-mode . lsp))
-;;   :commands lsp)
-;;   (use-package lsp-ui
-;;     :config
-;;     (setq lsp-ui-doc-position 'at-point
-;; 	  lsp-ui-doc-show-with-cursor t)
-;;     :commands lsp-ui-mode)
+  (add-hook 'after-init-hook #'global-flycheck-mode)
+  (flycheck-define-checker checkstyle
+     " a java checker "
+     :command ("checktyle" "-c" "./csc_checkstyle.xml" source)
+     :error-parser flycheck-parse-checkstyle
+     :enable t
+     :modes (java-mode java-ts-mode)))
+
+(defun lsp-booster--advice-json-parse (old-fn &rest args)
+  "Try to parse bytecode instead of json."
+  (or
+   (when (equal (following-char) ?#)
+     (let ((bytecode (read (current-buffer))))
+       (when (byte-code-function-p bytecode)
+         (funcall bytecode))))
+   (apply old-fn args)))
+(advice-add (if (progn (require 'json)
+                       (fboundp 'json-parse-buffer))
+                'json-parse-buffer
+              'json-read)
+            :around
+            #'lsp-booster--advice-json-parse)
+
+(defun lsp-booster--advice-final-command (old-fn cmd &optional test?)
+  "Prepend emacs-lsp-booster command to lsp CMD."
+  (let ((orig-result (funcall old-fn cmd test?)))
+    (if (and (not test?)                             ;; for check lsp-server-present?
+             (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
+             lsp-use-plists
+             (not (functionp 'json-rpc-connection))  ;; native json-rpc
+             (executable-find "emacs-lsp-booster"))
+        (progn
+          (message "Using emacs-lsp-booster for %s!" orig-result)
+          (cons "emacs-lsp-booster" orig-result))
+      orig-result)))
+(advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
+
+(use-package lsp-mode
+  :custom
+  (lsp-completion-provider :none) ;; we use Corfu!
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  (defun my/lsp-mode-setup-completion ()
+    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+          '(flex))) ;; Configure flex
+  :hook (
+	 (lsp-completion-mode . my/lsp-mode-setup-completion)
+	 (lsp-mode . lsp-enable-which-key-integration)
+	 ;;follow this pattern for everything you want an lsp for
+	 (nix-ts-mode . lsp)
+	 (rust-ts-mode . lsp))
+  :commands lsp)
+  (use-package lsp-ui
+    :config
+    (setq lsp-ui-doc-position 'at-point
+	  lsp-ui-doc-show-with-cursor t)
+    :commands lsp-ui-mode)
+(use-package lsp-treemacs
+  :custom (lsp-treemacs-sync-mode 1))
+(use-package treemacs
+  :config
+					; plugins
+  (use-package treemacs-all-the-icons)
+  (use-package treemacs-magit)
+  (use-package treemacs-evil)
+  (use-package treemacs-projectile)
+  (treemacs-git-mode 1)
+  )
 
 
-;; disabled for similar reasons as above - using lsp-bridge
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (defvar +lsp-defer-shutdown 3								        ;;
-;;   "If non-nil, defer shutdown of LSP servers for this many seconds after last		        ;;
-;; workspace buffer is closed.									        ;;
-;; 												        ;;
-;; This delay prevents premature server shutdown when a user still intends on			        ;;
-;; working on that project after closing the last buffer, or when programmatically		        ;;
-;; killing and opening many LSP/eglot-powered buffers.")					        ;;
-;; 												        ;;
-;; 												        ;;
-;; ;;												        ;;
-;; ;;; Common											        ;;
-;; 												        ;;
-;; (defvar +lsp--default-read-process-output-max nil)						        ;;
-;; (defvar +lsp--default-gcmh-high-cons-threshold nil)						        ;;
-;; (defvar +lsp--optimization-init-p nil)							        ;;
-;; 												        ;;
-;; (define-minor-mode +lsp-optimization-mode							        ;;
-;;   "Deploys universal GC and IPC optimizations for `lsp-mode' and `eglot'."			        ;;
-;;   :global t											        ;;
-;;   :init-value nil										        ;;
-;;   (if (not +lsp-optimization-mode)								        ;;
-;;       (setq-default read-process-output-max +lsp--default-read-process-output-max		        ;;
-;;                     gcmh-high-cons-threshold +lsp--default-gcmh-high-cons-threshold		        ;;
-;;                     +lsp--optimization-init-p nil)						        ;;
-;;     ;; Only apply these settings once!							        ;;
-;;     (unless +lsp--optimization-init-p							        ;;
-;;       (setq +lsp--default-read-process-output-max (default-value 'read-process-output-max)	        ;;
-;;             +lsp--default-gcmh-high-cons-threshold (default-value 'gcmh-high-cons-threshold))        ;;
-;;       (setq-default read-process-output-max (* 1024 1024))					        ;;
-;;       ;; REVIEW LSP causes a lot of allocations, with or without the native JSON		        ;;
-;;       ;;        library, so we up the GC threshold to stave off GC-induced			        ;;
-;;       ;;        slowdowns/freezes. Doom (where this code was obtained from)			        ;;
-;;       ;;        uses `gcmh' to enforce its GC strategy,					        ;;
-;;       ;;        so we modify its variables rather than `gc-cons-threshold'			        ;;
-;;       ;;        directly.									        ;;
-;;       (setq-default gcmh-high-cons-threshold (* 2 +lsp--default-gcmh-high-cons-threshold))	        ;;
-;;       (gcmh-set-high-threshold)								        ;;
-;;       (setq +lsp--optimization-init-p t))))							        ;;
-;; 												        ;;
+(defvar +lsp-defer-shutdown 3 ;;
+  ;;   "If non-nil, defer shutdown of LSP servers for this many seconds after last		        ;;
+  ;; workspace buffer is closed.									        ;;
+  ;; 												        ;;
+  ;; This delay prevents premature server shutdown when a user still intends on			        ;;
+  ;; working on that project after closing the last buffer, or when programmatically		        ;;
+  ;; killing and opening many LSP/eglot-powered buffers."
+  )					        ;;
+												        ;;
+												        ;;
+;;												        ;;
+;;; nix-mode
+(use-package nix-mode
+  :mode "\\.nix\\'")
+(use-package nix-ts-mode
+  :mode "\\.nix\\'")
+;; yuck (for eww bar)
+(use-package yuck-mode
+  :mode "\\.yuck\\'")
+
+;;; Common											        ;;
+												        ;;
+(defvar +lsp--default-read-process-output-max nil)						        ;;
+(defvar +lsp--default-gcmh-high-cons-threshold nil)						        ;;
+(defvar +lsp--optimization-init-p nil)							        ;;
+												        ;;
+(define-minor-mode +lsp-optimization-mode							        ;;
+  "Deploys universal GC and IPC optimizations for `lsp-mode' and `eglot'."			        ;;
+  :global t											        ;;
+  :init-value nil										        ;;
+  (if (not +lsp-optimization-mode)								        ;;
+      (setq-default read-process-output-max +lsp--default-read-process-output-max		        ;;
+                    gcmh-high-cons-threshold +lsp--default-gcmh-high-cons-threshold		        ;;
+                    +lsp--optimization-init-p nil)						        ;;
+    ;; Only apply these settings once!							        ;;
+    (unless +lsp--optimization-init-p							        ;;
+      (setq +lsp--default-read-process-output-max (default-value 'read-process-output-max)	        ;;
+            +lsp--default-gcmh-high-cons-threshold (default-value 'gcmh-high-cons-threshold))        ;;
+      (setq-default read-process-output-max (* 1024 1024))					        ;;
+      ;; REVIEW LSP causes a lot of allocations, with or without the native JSON		        ;;
+      ;;        library, so we up the GC threshold to stave off GC-induced			        ;;
+      ;;        slowdowns/freezes. Doom (where this code was obtained from)			        ;;
+      ;;        uses `gcmh' to enforce its GC strategy,					        ;;
+      ;;        so we modify its variables rather than `gc-cons-threshold'			        ;;
+      ;;        directly.									        ;;
+      (setq-default gcmh-high-cons-threshold (* 2 +lsp--default-gcmh-high-cons-threshold))	        ;;
+      (gcmh-set-high-threshold)								        ;;
+      (setq +lsp--optimization-init-p t))))
+(use-package lsp-java :config (add-hook 'java-mode-hook 'lsp)) ;; Don't use manually installed java, doesn't have everything needed
+(use-package dap-mode :after lsp-mode :config (dap-auto-configure-mode))
+(use-package dap-java :ensure nil)
+
+;;
 ;; (use-package eglot											        ;;
 ;;   :hook ((eglot-managed-mode . +lsp-optimization-mode)					        ;;
 ;; 	 (nix-ts-mode . eglot-ensure)							        ;;
@@ -610,30 +689,30 @@
 ;; 	;;      its popup rule causes eglot to steal focus too often.			        ;;
 ;; 	eglot-auto-display-help-buffer nil)							        ;;
 ;;   												        ;;
-;;   (defun my/eglot-capf ()									        ;;
-;;     (setq-local completion-at-point-functions						        ;;
-;; 		(list (cape-super-capf								        ;;
-;; 		       #'eglot-completion-at-point						        ;;
-;; 		       #'tempel-expand								        ;;
-;; 		       #'cape-file))))								        ;;
-;; 												        ;;
-;;   (add-hook 'eglot-managed-mode-hook #'my/eglot-capf))					        ;;
-;; (use-package consult-eglot)										        ;;
-;; (use-package flycheck-eglot										        ;;
-;;   :after (flycheck eglot)									        ;;
-;;   :custom (flycheck-eglot-exclusive . nil)							        ;;
-;;   :config											        ;;
-;;   (global-flycheck-eglot-mode 1))								        ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  (defun my/eglot-capf ()									        ;;
+;;    (setq-local completion-at-point-functions						        ;;
+;;		(list (cape-super-capf								        ;;
+;;		       #'eglot-completion-at-point						        ;;
+;;		       #'tempel-expand								        ;;
+;;		       #'cape-file))))								        ;;
+;;												        ;;
+					;  (add-hook 'eglot-managed-mode-hook #'my/eglot-capf))					        ;;
+;;(use-package consult-eglot)										        ;;
+;;(use-package flycheck-eglot										        ;;
+;;  :after (flycheck eglot)									        ;;
+;;  :custom (flycheck-eglot-exclusive . nil)							        ;;
+;; :config											        ;;
+;;  (global-flycheck-eglot-mode 1))								        ;;
 
-(use-package lsp-bridge
-  :after yasnippet
-  :custom ((lsp-bridge-nix-lsp-server "nil") ;nil the lsp - not the value
-	   )
-  :init (global-lsp-bridge-mode))
-(use-package yasnippet
-  :init (yas-global-mode 1)) 			;needed for lsp-bridge, can still template in tempel
-(use-package yasnippet-snippets)
+
+;; (use-package lsp-bridge
+;;   :after yasnippet
+;;   :custom ((lsp-bridge-nix-lsp-server "nil") ;nil the lsp - not the value
+;; 	   )
+;;   :init (global-lsp-bridge-mode))
+;; (use-package yasnippet
+;;   :init (yas-global-mode 1)) 			;needed for lsp-bridge, can still template in tempel
+;; (use-package yasnippet-snippets)
 (use-package markdown-mode)
 
 (use-package tempel
@@ -643,37 +722,34 @@
 
   :bind (("M-+" . tempel-complete) ;; Alternative tempel-expand
 	 ("M-*" . tempel-insert))
-
-
-  ;; commented due to useing lsp-bridge
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; ;; Setup completion at point						   ;;
-  ;; (defun tempel-setup-capf ()						   ;;
-  ;;   ;; Add the Tempel Capf to `completion-at-point-functions'.		   ;;
-  ;;   ;; `tempel-expand' only triggers on exact matches. Alternatively use	   ;;
-  ;;   ;; `tempel-complete' if you want to see all matches, but then you	   ;;
-  ;;   ;; should also configure `tempel-trigger-prefix', such that Tempel	   ;;
-  ;;   ;; does not trigger too often when you don't expect it. NOTE: We add	   ;;
-  ;;   ;; `tempel-expand' *before* the main programming mode Capf, such		   ;;
-  ;;   ;; that it will be tried first.						   ;;
-  ;;   (setq-local completion-at-point-functions				   ;;
-  ;; 		(cons #'tempel-expand						   ;;
-  ;; 		      completion-at-point-functions)))				   ;;
-  ;; 										   ;;
-  ;; (add-hook 'conf-mode-hook 'tempel-setup-capf)				   ;;
-  ;; (add-hook 'prog-mode-hook 'tempel-setup-capf)				   ;;
-  ;; (add-hook 'text-mode-hook 'tempel-setup-capf)				   ;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  ;; Setup completion at point						   ;;
+  (defun tempel-setup-capf ()						   ;;
+    ;; Add the Tempel Capf to `completion-at-point-functions'.		   ;;
+    ;; `tempel-expand' only triggers on exact matches. Alternatively use	   ;;
+    ;; `tempel-complete' if you want to see all matches, but then you	   ;;
+    ;; should also configure `tempel-trigger-prefix', such that Tempel	   ;;
+    ;; does not trigger too often when you don't expect it. NOTE: We add	   ;;
+    ;; `tempel-expand' *before* the main programming mode Capf, such		   ;;
+    ;; that it will be tried first.						   ;;
+    (setq-local completion-at-point-functions				   ;;
+		(cons #'tempel-expand						   ;;
+		      completion-at-point-functions)))				   ;;
+										   ;;
+  (add-hook 'conf-mode-hook 'tempel-setup-capf)				   ;;
+  (add-hook 'prog-mode-hook 'tempel-setup-capf)				   ;;
+  (add-hook 'text-mode-hook 'tempel-setup-capf)				   ;;
+  
 
   ;; Optionally make the Tempel templates available to Abbrev,
-  ;; either locally or globally. `expand-abbrev' is bound to C-x '.
-  ;; (add-hook 'prog-mode-hook #'tempel-abbrev-mode)
-  ;; (global-tempel-abbrev-mode)
+  ;;either locally or globally. `expand-abbrev' is bound to C-x '.
+  (add-hook 'prog-mode-hook #'tempel-abbrev-mode)
+  (global-tempel-abbrev-mode)
   )
 
-;; Optional: Add tempel-collection.
-;; The package is young and doesn't have comprehensive coverage.
-(use-package tempel-collection)
+(use-package tempel-collection
+  :after tempel
+)
 
 ;; spellcheck
 (use-package jinx
@@ -741,12 +817,13 @@
 	 ))
 
 (use-package centaur-tabs
-  :custom ((centaur-tabs-mode . t)
-	   (centaur-tabs-style . "rounded"))
+  :custom (
+	   (centaur-tabs-style '"rounded"))
   ;; (centaur-tabs-close-button .  "X") ;; disable close button
   :bind (
 	 ("C-<prior>" . centaur-tabs-backward)
-	 ("C-<next>" . centaur-tabs-forward)))
+	 ("C-<next>" . centaur-tabs-forward))
+  :init (centaur-tabs-mode t))
 
 (use-package highlight-indent-guides
   :hook
@@ -766,17 +843,30 @@
   )
 (use-package consult-todo)
 ;; languages
-;;; nix-mode
-(use-package nix-mode
-  :mode "\\.nix\\'")
-(use-package nix-ts-mode
-  :mode "\\.nix\\'")
-;; yuck (for eww bar)
-(use-package yuck-mode
-  :mode "\\.yuck\\'")
-
 ;;; rust
 
-(provide 'emacs)
+(use-package pdf-tools
+  :magic ("%PDF" . pdf-view-mode)
+  :config
+  (setq-default pdf-view-display-size 'fit-page)
+  (setq pdf-annot-activate-created-annotations t)
+  (require 'pdf-tools)
+  (require 'pdf-view)
+  (require 'pdf-misc)
+  (require 'pdf-occur)
+  (require 'pdf-util)
+  (require 'pdf-annot)
+  (require 'pdf-info)
+  (require 'pdf-isearch)
+  (require 'pdf-history)
+  (require 'pdf-links)
+  (pdf-tools-install :no-query)
+  )
+(use-package zen-mode)
 
+(use-package envrc
+  :init
+  (envrc-global-mode))
+
+(provide 'emacs)
 ;;; emacs.el ends here
